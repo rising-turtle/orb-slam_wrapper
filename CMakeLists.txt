@@ -18,7 +18,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-set(CMAKE_CXX_FLAGS "-ggdb -g -O3 -fPIC -fpermissive -std=c++0x -w")
+set(CMAKE_CXX_FLAGS "-ggdb -g -O3 -fPIC -fpermissive -std=c++11 -w")
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -33,14 +33,16 @@ find_package(Pangolin REQUIRED)
 include_directories(/usr/include/eigen3)
 
 # PCL #######################
- set(PCL_DIR "/home/davidz/work/3rdlibs/pcl_1.7.1_src/pcl-pcl-1.7.1/build")
- find_package(PCL 1.7 REQUIRED COMPONENTS common io sample_consensus segmentation visualization kdtree)
+# set(PCL_DIR "/home/davidz/work/3rdlibs/pcl_1.7.1_src/pcl-pcl-1.7.1/build")
+ find_package(PCL 1.8 REQUIRED COMPONENTS common io sample_consensus segmentation visualization kdtree
+   PATHS "/usr/local/share/pcl-1.8")
  include_directories(${PCL_INCLUDE_DIRS})
  link_directories(${PCL_LIBRARY_DIRS})
  # add_definitions(${PCL_DEFINITIONS})
 
 ###################  ORB-SLAM   ######################
-set(ORB_SLAM_DIR "/home/davidz/work/3rdlibs/ORB_SLAM2-master")
+set(ORB_SLAM_DIR "/home/etas/ORB_SLAM2")
+set(ORB_G2O "/home/etas/ORB_SLAM2/Thirdparty/g2o")
 
 set(LIBS 
 ${OpenCV_LIBS} 
@@ -55,6 +57,9 @@ include_directories(
   ${ORB_SLAM_DIR}
   ${ORB_SLAM_DIR}/include
   ${Pangolin_INCLUDE_DIRS}
+  ${ORB_G2O} ${ORB_G2O}/g2o/types 
+  "../plane_model/src"
+  "../cam_model/src"
 )
 
 add_subdirectory(src)

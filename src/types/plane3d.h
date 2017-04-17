@@ -14,8 +14,8 @@
 // #include "g2o/stuff/misc.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "/home/davidz/work/3rdlibs/ORB_SLAM2-master/Thirdparty/g2o/g2o/types/se3quat.h"
-// #include "se3quat.h"
+//#include "/home/davidz/work/3rdlibs/ORB_SLAM2-master/Thirdparty/g2o/g2o/types/se3quat.h"
+#include "se3quat.h"
 
 namespace g2o {
   
