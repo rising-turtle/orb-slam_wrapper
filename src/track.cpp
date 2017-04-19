@@ -1,4 +1,5 @@
 #include "track.h"
+#include "ORBmatcher.h"
 #include "Optimizer.h"
 #include "keyframe.h"
 #include "optimizer.h"
@@ -80,13 +81,133 @@ int CTrack::numValidPoints() // check how many valid features have been observed
   int ret = 0; 
   for(int i=0; i<mCurrentFrame.N; i++)
   {
-    float z = mLastFrame.mvDepth[i];
+    float z = mCurrentFrame.mvDepth[i];
     if(z>0)
     {
       ret++;
     }
   }
   return ret; 
+}
+
+bool CTrack::TrackWithMotionModel()
+{
+  ORBmatcher matcher(0.9, true); 
+
+  // Update last frame pose according to its reference keyframe 
+  // Create "visual odometry" points
+  UpdateLastFrame(); 
+
+  mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw); 
+
+  fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL)); 
+
+  int th; 
+
+  if(mSensor!=System::STEREO)
+    th = 15; 
+  else
+    th = 7; 
+
+  int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor==System::MONOCULAR); 
+
+  // If few matches, uses a wider window search 
+  if(nmatches < 20)
+  {
+    fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL)); 
+    nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2*th, mSensor == System::MONOCULAR); 
+  }
+
+  if(nmatches < 5)
+  {
+    cout <<"track.cpp: nmatches = "<<nmatches<<"failed tracking!"<<endl;
+    return false; 
+  }
+  
+  // Optimize frame pose with all matches 
+  Optimizer::PoseOptimization(&mCurrentFrame); 
+
+  // Discard outliers
+  int nmatchesMap = 0; 
+  for(int i=0; i<mCurrentFrame.N; i++)
+  {
+    if(mCurrentFrame.mvpMapPoints[i])
+    {
+      if(mCurrentFrame.mvbOutlier[i])
+      {
+        MapPoint* pMP = mCurrentFrame.mvpMapPoints[i]; 
+        mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL); 
+        mCurrentFrame.mvbOutlier[i] = false; 
+        pMP->mbTrackInView = false; 
+        pMP->mnLastFrameSeen = mCurrentFrame.mnId; 
+        nmatches--;
+      }
+      else if(mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
+        ++nmatchesMap;
+    }
+  }
+
+  if(mbOnlyTracking)
+  {
+    mbVO = nmatchesMap < 10; 
+    return nmatches > 20; 
+  }
+
+  if(nmatchesMap < 4)
+  {
+    cout <<"track.cpp: TrackWithMotionModel() Failed: nmatchesMap = "<<nmatchesMap<<endl; 
+  }
+  return nmatchesMap >= 4;
+}
+
+bool CTrack::TrackReferenceKeyFrame()
+{
+  // Compute Bag of Words vector 
+  mCurrentFrame.ComputeBoW(); 
+
+  // We perform first an ORB matching with the reference keyframe
+  // If enough matches are found we setup a PnP solver 
+  ORBmatcher matcher(0.7, true);
+  vector<MapPoint*> vpMapPointMatches; 
+
+  int nmatches = matcher.SearchByBoW(mpReferenceKF, mCurrentFrame, vpMapPointMatches); 
+
+  if(nmatches < 7)
+  {
+    cout <<"track.cpp() TrackReferenceKeyFrame() Failed: nmatches = "<<nmatches<<endl; 
+    return false; 
+  }
+  
+  mCurrentFrame.mvpMapPoints = vpMapPointMatches; 
+  mCurrentFrame.SetPose(mLastFrame.mTcw); 
+
+  Optimizer::PoseOptimization(&mCurrentFrame); 
+  
+  // Discard outliers
+  int nmatchesMap = 0; 
+  for(int i=0; i<mCurrentFrame.N; i++)
+  {
+    if(mCurrentFrame.mvpMapPoints[i])
+    {
+      if(mCurrentFrame.mvbOutlier[i])
+      {
+        MapPoint* pMP = mCurrentFrame.mvpMapPoints[i]; 
+        
+        mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL); 
+        mCurrentFrame.mvbOutlier[i] = false;
+        pMP->mbTrackInView = false; 
+        pMP->mnLastFrameSeen = mCurrentFrame.mnId; 
+        nmatches--;
+      }else if(mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
+        ++nmatchesMap ; 
+    }
+  }
+
+  if(nmatchesMap < 4)
+  {
+    cout << "track.cpp: TrackReferenceKeyFrame() Failed: nmatchesMap = "<<nmatchesMap<<endl; 
+  }
+  return nmatchesMap >=4;
 }
 
 void CTrack::Track()
@@ -144,7 +265,7 @@ void CTrack::Track()
         cout <<"track.cpp: current frame has feature points : "<<nFPs<<endl;
         bRelocalFailed = true; 
       }
-      cout <<"Track lost, Relocalization failed !"<<endl;
+      cout <<"Track lost, Relocalization failed ! current frame has valid points = "<<nFPs<<endl;
     }
   }
   
@@ -163,7 +284,7 @@ void CTrack::Track()
     mState = OK;
   else
   {
-    // cout <<"track.cpp: failed tracking, just ignore this frame!"<<endl; 
+    cout <<"track.cpp: failed tracking, just ignore this frame!"<<endl; 
     // return ; 
     mState=LOST; // if failed 
   }

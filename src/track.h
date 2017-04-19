@@ -24,6 +24,8 @@ class CTrack : public ORB_SLAM2::Tracking
     ~CTrack();
     
     void Track();
+    bool TrackWithMotionModel(); 
+    bool TrackReferenceKeyFrame(); 
     bool TrackLocalMap(); 
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
   
