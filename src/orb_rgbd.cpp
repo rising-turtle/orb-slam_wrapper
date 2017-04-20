@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     string ORBvoc("Vocabulary/ORBvoc.txt");
-    string camParam("F200.yaml"); 
+    string camParam("R200.yaml"); 
     // string imgDir("/media/work/work/data/realsense/03_26_ETAS_5F/03_26_19_19"); 
     // string imgDir("/home/davidz/work/data/real_sense/04_04_2017_xy"); 
     string imgDir("/home/davidz/work/data/real_sense/04_04_2017_emud"); 
@@ -74,8 +74,8 @@ int main(int argc, char **argv)
     
     CSystem SLAM(ORBvoc,camParam,ORB_SLAM2::System::RGBD,true);
     
-    if(no != "no")
-      SLAM.enablePlanes(imgDir, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps, cam);  // set variables needed for plane feature
+    // if(no != "no")
+      // SLAM.enablePlanes(imgDir, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps, cam);  // set variables needed for plane feature
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;

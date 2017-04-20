@@ -15,6 +15,9 @@ class CLocalMap : public ORB_SLAM2::LocalMapping
     CLocalMap(ORB_SLAM2::Map* pMap, const float bMonocular); 
     ~CLocalMap();
 
+    void KeyFrameCulling(); // rewrite for debug
+  
+
     // Main function 
     void Run(); 
     bool mbUsePlane; 

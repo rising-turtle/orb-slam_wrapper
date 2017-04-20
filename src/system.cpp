@@ -40,7 +40,7 @@ CSystem::CSystem(const string &strVocFile, const string &strSettingsFile, const 
 CSystem::~CSystem(){}
 
 cv::Mat CSystem::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
-{
+{ 
   if(mSensor!=RGBD)
   {
     cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;

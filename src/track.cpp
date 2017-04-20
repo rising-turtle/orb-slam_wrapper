@@ -118,7 +118,7 @@ bool CTrack::TrackWithMotionModel()
     nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2*th, mSensor == System::MONOCULAR); 
   }
 
-  if(nmatches < 5)
+  if(nmatches < 10)
   {
     cout <<"track.cpp: nmatches = "<<nmatches<<"failed tracking!"<<endl;
     return false; 
@@ -153,11 +153,11 @@ bool CTrack::TrackWithMotionModel()
     return nmatches > 20; 
   }
 
-  if(nmatchesMap < 4)
+  if(nmatchesMap < 10)
   {
     cout <<"track.cpp: TrackWithMotionModel() Failed: nmatchesMap = "<<nmatchesMap<<endl; 
   }
-  return nmatchesMap >= 4;
+  return nmatchesMap >= 10;
 }
 
 bool CTrack::TrackReferenceKeyFrame()
@@ -203,11 +203,11 @@ bool CTrack::TrackReferenceKeyFrame()
     }
   }
 
-  if(nmatchesMap < 4)
+  if(nmatchesMap < 10)
   {
     cout << "track.cpp: TrackReferenceKeyFrame() Failed: nmatchesMap = "<<nmatchesMap<<endl; 
   }
-  return nmatchesMap >=4;
+  return nmatchesMap >=10;
 }
 
 void CTrack::Track()
@@ -261,7 +261,7 @@ void CTrack::Track()
     }else
     {
       int nFPs = numValidPoints(); 
-      if(nFPs > 20) // check the number of features in the current frame 
+      if(nFPs > 50) // check the number of features in the current frame 
       {
         cout <<"track.cpp: current frame has feature points : "<<nFPs<<endl;
         bRelocalFailed = true; 
@@ -436,13 +436,13 @@ bool CTrack::TrackLocalMap()
     }
 
     // Decide if a track is succeed 
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<10) // 50
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<30) // 50
     {
       cout <<"Failed : mnMatchesInliers = "<<mnMatchesInliers<<" currentId = "<<mCurrentFrame.mnId<<" mnLastRelocFrameId = "<<mnLastKeyFrameId<<" maxFrames = "<<mMaxFrames<<endl;
       return false;
     }
 
-    if(mnMatchesInliers<4) // 30, 20 
+    if(mnMatchesInliers<20) // 30, 20 
     {
       cout <<"Failed : mnMatchesInliers: "<<mnMatchesInliers<<endl;
       return false;
