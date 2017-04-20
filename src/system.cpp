@@ -2,6 +2,7 @@
 #include "track.h"
 #include "cam_model.h"
 #include "local_map.h"
+#include "Converter.h"
 
 using namespace ORB_SLAM2; 
 
@@ -45,8 +46,21 @@ cv::Mat CSystem::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const dou
     cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;
     exit(-1);
   } 
-  return mpTrack->GrabImageRGBD(im, depthmap, timestamp); 
+  cv::Mat Tcw = mpTrack->GrabImageRGBD(im, depthmap, timestamp); 
+  // convertPos(Tcw); 
+  return Tcw; 
   // return System::TrackRGBD(im, depthmap, timestamp); 
+}
+
+void CSystem::convertPos(cv::Mat pos)
+{
+  vector<float> q; 
+  q = ORB_SLAM2::Converter::toQuaternion(pos); 
+  
+  float* p = mpos; 
+  p[0] = pos.at<float>(0,3); p[1] = pos.at<float>(1,3); p[2] = pos.at<float>(2,3);
+  p[3] = q[0]; p[4] = q[1]; p[5] = q[2]; p[6] = q[3];
+  return; 
 }
 
 void CSystem::enablePlanes(string imgDir, vector<string>& vRGBf, vector<string>& vDPTf, vector<double>& Timestamp, CamModel& cam)
@@ -54,6 +68,12 @@ void CSystem::enablePlanes(string imgDir, vector<string>& vRGBf, vector<string>&
   mpTrack->enablePlanes(imgDir, vRGBf, vDPTf, Timestamp, cam);
   mpLocalMap->mbUsePlane = true; 
   return; 
+}
+
+
+bool CSystem::isNewKF()
+{
+  return mpTrack->isNewKF(); 
 }
 
 void CSystem::saveMapPoints(string filename)

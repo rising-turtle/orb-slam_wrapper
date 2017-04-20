@@ -35,6 +35,10 @@ class CTrack : public ORB_SLAM2::Tracking
 
     int numValidPoints(); // check how many valid features have been observed in current frame 
 
+    // bool 
+    bool isNewKF(); 
+    bool mbNewKF;    // whether a new KF is added 
+
     // plane related functions 
     int findPlaneMatches(); 
     bool mbUsePlane; // whether use plane feature 

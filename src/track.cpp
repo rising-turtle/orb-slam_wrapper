@@ -220,6 +220,7 @@ void CTrack::Track()
   if(mbOnlyTracking == true) 
     return Tracking::Track(); 
 
+  mbNewKF = false; 
   mLastProcessedState=mState;
 
   // Get Map Mutex -> Map cannot be changed
@@ -338,7 +339,10 @@ void CTrack::Track()
 
     // check if a new KF is needed 
     if(NeedNewKeyFrame() || bRelocalFailed) // a Failed Frame, add it as a new keyframe 
+    {
       CreateNewKeyFrame();
+      mbNewKF = true; 
+    }
 
     // delete outliers in this frame 
     for(int i=0; i<mCurrentFrame.N;i++)
@@ -373,6 +377,11 @@ void CTrack::Track()
 
   // cout <<"mlRelativeFramePoses has pose: "<<mlRelativeFramePoses.size()<<endl;
   return ;
+}
+
+bool CTrack::isNewKF()
+{
+  return mbNewKF; 
 }
 
 bool CTrack::TrackLocalMap()

@@ -28,6 +28,10 @@ class CSystem : public ORB_SLAM2::System
     cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp); 
     CTrack* mpTrack;
     CLocalMap* mpLocalMap; 
+    
+    bool isNewKF();
+    float mpos[7];   // x, y, z, qx, qy, qz, qw
+    void convertPos(cv::Mat); 
 }; 
 
 

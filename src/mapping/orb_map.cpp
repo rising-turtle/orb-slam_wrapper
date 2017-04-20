@@ -14,7 +14,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "../cam_model.h"
+#include "cam_model.h"
 #include <opencv2/core/core.hpp>
 #include "util/SophusUtil.h"
 
