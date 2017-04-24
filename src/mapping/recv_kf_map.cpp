@@ -155,7 +155,7 @@ Traj computeT(cv::Mat p)
        p.at<float>(2,0), p.at<float>(2,1), p.at<float>(2,2); 
   Eigen::Quaterniond q(R.transpose()); 
   Eigen::Matrix<double ,3, 1> t; t << p.at<float>(0,3), p.at<float>(1,3), p.at<float>(2,3); 
-  t = -R*t; 
+  t = -R.transpose()*t; 
   Traj Ti;
   Ti.timestamp = 10000; // ros::Time::Now().toSec(); 
   // Ti.x = p.at<float>(0,3); Ti.y = p.at<float>(1,3); Ti.z = p.at<float>(2,3); 
