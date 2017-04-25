@@ -212,151 +212,175 @@ bool CTrack::TrackReferenceKeyFrame()
 
 void CTrack::Track()
 {
-  // do not handle initialization stuff 
-  if(mState==NO_IMAGES_YET || mState == NOT_INITIALIZED)
-     return Tracking::Track(); 
-  
+ 
   // do not handle case: only Tracking 
   if(mbOnlyTracking == true) 
     return Tracking::Track(); 
 
+  // do not handle initialization stuff 
+  if(mState==NO_IMAGES_YET)
+  {
+    mState = NOT_INITIALIZED; 
+  }
+  
+  mLastProcessedState = mState; 
   mbNewKF = false; 
-  mLastProcessedState=mState;
 
   // Get Map Mutex -> Map cannot be changed
   unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
-  // Track Frame.
-  bool bOK;
-  bool bRelocalFailed = false; 
-
-  if(mState == OK)
+  if(mState == NOT_INITIALIZED)
   {
-    // Local Mapping may have changed the position of some map points 
-    CheckReplacedInLastFrame();
+      if(mSensor == System::STEREO || mSensor == System::RGBD)
+        StereoInitialization(); 
+      else
+        MonocularInitialization(); 
 
-    if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
-    {
-      bOK = TrackReferenceKeyFrame();
-    }
-    else
-    {
-      bOK = TrackWithMotionModel();
-      if(!bOK)
-      {
-        cout <<"TrackWithMotionModel failed try to TrackReferenceKeyFrame()"<<endl;
-        bOK = TrackReferenceKeyFrame();
-        if(!bOK)
-        {
-          cout <<"TrackReferenceKeyFrame failed as well!"<<endl;
-        }
-      }
-    }
-  }else // LOST 
-  {
-    bOK = Relocalization();
-    if(bOK)
-    {
-      cout <<"Track recovers, Relocalization succeed ! "<<endl;
-    }else
-    {
-      int nFPs = numValidPoints(); 
-      if(nFPs > 50) // check the number of features in the current frame 
-      {
-        cout <<"track.cpp: current frame has feature points : "<<nFPs<<endl;
-        bRelocalFailed = true; 
-      }
-      cout <<"Track lost, Relocalization failed ! current frame has valid points = "<<nFPs<<endl;
-    }
+      mpFrameDrawer->Update(this); 
+      if(mState != OK)
+        return; 
+      
+      // set current pose at identity
+      cv::Mat pos = cv::Mat::eye(4,4, CV_32F); 
+      mCurrentFrame.SetPose(pos); 
+
+      // a new KF has been added 
+      mbNewKF = true; 
   }
-  
-  mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
-  if(bOK)
-  {
-    bOK = TrackLocalMap();
-    if(!bOK)
-    {
-      cout<<"TrackLocalMap failed! change state to TrackLost!"<<endl;
-    }
-  }
-
-  if(bOK)
-    mState = OK;
   else
   {
-    cout <<"track.cpp: failed tracking, just ignore this frame!"<<endl; 
-    // return ; 
-    mState=LOST; // if failed 
-  }
-  
-  // Update drawer
-  mpFrameDrawer->Update(this);
-  
-  if(bRelocalFailed && !bOK)
-  {
-    cout <<"set current frame as tracked id = "<<mCurrentFrame.mnId<<endl;
-    mCurrentFrame.SetPose(mLastFrame.mTcw); // assign it to the pose of last frame 
-    bOK = true; 
-    mState = OK; 
-  }
+    // Track Frame.
+    bool bOK;
+    bool bRelocalFailed = false; 
 
-  // If tracking were good, check if a new KF is needed
-  if(bOK)
-  {
-    // update motion model 
-    if(!mLastFrame.mTcw.empty())
+    if(mState == OK)
     {
-      cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
-      mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
-      mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
-      mVelocity = mCurrentFrame.mTcw*LastTwc;
-    }
-    else
-      mVelocity = cv::Mat();
-    
-    mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+      // Local Mapping may have changed the position of some map points 
+      CheckReplacedInLastFrame();
 
-    // clean temporal points matches
-    for(int i=0; i<mCurrentFrame.N; i++)
-    {
-      MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-      if(pMP)
-        if(pMP->Observations()<1)
+      if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+      {
+        bOK = TrackReferenceKeyFrame();
+      }
+      else
+      {
+        bOK = TrackWithMotionModel();
+        if(!bOK)
         {
-          mCurrentFrame.mvbOutlier[i] = false;
-          mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+          cout <<"TrackWithMotionModel failed try to TrackReferenceKeyFrame()"<<endl;
+          bOK = TrackReferenceKeyFrame();
+          if(!bOK)
+          {
+            cout <<"TrackReferenceKeyFrame failed as well!"<<endl;
+          }
         }
-    }
-    
-    // delete temporal Mappoints 
-    for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
+      }
+    }else // LOST 
     {
-      MapPoint* pMP = *lit;
-      delete pMP;
+      bOK = Relocalization();
+      if(bOK)
+      {
+        cout <<"Track recovers, Relocalization succeed ! "<<endl;
+      }else
+      {
+        int nFPs = numValidPoints(); 
+        if(nFPs > 50) // check the number of features in the current frame 
+        {
+          cout <<"track.cpp: current frame has feature points : "<<nFPs<<endl;
+          bRelocalFailed = true; 
+        }
+        cout <<"Track lost, Relocalization failed ! current frame has valid points = "<<nFPs<<endl;
+      }
     }
-    mlpTemporalPoints.clear();
 
-    // check if a new KF is needed 
-    if(NeedNewKeyFrame() || bRelocalFailed) // a Failed Frame, add it as a new keyframe 
+    mCurrentFrame.mpReferenceKF = mpReferenceKF;
+
+    if(bOK)
     {
-      CreateNewKeyFrame();
-      mbNewKF = true; 
+      bOK = TrackLocalMap();
+      if(!bOK)
+      {
+        cout<<"TrackLocalMap failed! change state to TrackLost!"<<endl;
+      }
     }
 
-    // delete outliers in this frame 
-    for(int i=0; i<mCurrentFrame.N;i++)
+    if(bOK)
+      mState = OK;
+    else
     {
-      if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
-        mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+      cout <<"track.cpp: failed tracking, just ignore this frame!"<<endl; 
+      // return ; 
+      mState=LOST; // if failed 
     }
 
-    if(!mCurrentFrame.mpReferenceKF)
-      mCurrentFrame.mpReferenceKF = mpReferenceKF;
+    // Update drawer
+    mpFrameDrawer->Update(this);
 
-    mLastFrame = Frame(mCurrentFrame);
+    if(bRelocalFailed && !bOK)
+    {
+      cout <<"set current frame as tracked id = "<<mCurrentFrame.mnId<<endl;
+      mCurrentFrame.SetPose(mLastFrame.mTcw); // assign it to the pose of last frame 
+      bOK = true; 
+      mState = OK; 
+    }
+
+    // If tracking were good, check if a new KF is needed
+    if(bOK)
+    {
+      // update motion model 
+      if(!mLastFrame.mTcw.empty())
+      {
+        cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
+        mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
+        mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+        mVelocity = mCurrentFrame.mTcw*LastTwc;
+      }
+      else
+        mVelocity = cv::Mat();
+
+      mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+
+      // clean temporal points matches
+      for(int i=0; i<mCurrentFrame.N; i++)
+      {
+        MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+        if(pMP)
+          if(pMP->Observations()<1)
+          {
+            mCurrentFrame.mvbOutlier[i] = false;
+            mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+          }
+      }
+
+      // delete temporal Mappoints 
+      for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
+      {
+        MapPoint* pMP = *lit;
+        delete pMP;
+      }
+      mlpTemporalPoints.clear();
+
+      // check if a new KF is needed 
+      if(NeedNewKeyFrame() || bRelocalFailed) // a Failed Frame, add it as a new keyframe 
+      {
+        CreateNewKeyFrame();
+        mbNewKF = true; 
+      }
+
+      // delete outliers in this frame 
+      for(int i=0; i<mCurrentFrame.N;i++)
+      {
+        if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
+          mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+      }
+
+      if(!mCurrentFrame.mpReferenceKF)
+        mCurrentFrame.mpReferenceKF = mpReferenceKF;
+
+      mLastFrame = Frame(mCurrentFrame);
+    }
   }
-  
+
   // store frame pose information to retrieve complete trajectory information  
   if(!mCurrentFrame.mTcw.empty())
   {
