@@ -7,7 +7,7 @@
 using namespace ORB_SLAM2; 
 
 CSystem::CSystem(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer) : 
-  System(strVocFile, strSettingsFile, sensor)
+  System(strVocFile, strSettingsFile, sensor, bUseViewer)
 {
   // handle tracker 
   mpTrack = new CTrack(*mpTracker); 

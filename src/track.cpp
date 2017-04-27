@@ -70,6 +70,8 @@ cv::Mat CTrack::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat &imD, const do
   imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
 
   mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+  
+  cout <<"track.cpp: Frame "<<mCurrentFrame.mnId<<" extract features number : "<<mCurrentFrame.N<<endl; 
 
   Track();
 

@@ -14,6 +14,9 @@ target_link_libraries(orb-RGBD orb_wrapper ${LIBS} ${catkin_LIBRARIES})
 add_executable(test_plane_f200 test_plane.cpp)
 target_link_libraries(test_plane_f200 orb_wrapper ${LIBS} ${catkin_LIBRARIES})
 
+add_executable(show_feature test_feature.cpp)
+target_link_libraries(show_feature ${LIBS} ${catkin_LIBRARIES})
+
 add_subdirectory(mapping) 
 
 
