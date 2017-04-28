@@ -39,6 +39,27 @@ CSystem::CSystem(const string &strVocFile, const string &strSettingsFile, const 
 
 CSystem::~CSystem(){}
 
+void CSystem::setMask(cv::Mat mask)
+{
+  if(mSensor == STEREO)
+  {
+    cout<<"system.cpp: eSensor = STEREO, now mask for stereo has not been ready!"<<endl; 
+    return ; 
+  }
+
+  mpTrack->setTrackMask(mask); 
+}
+
+cv::Mat CSystem::getMask()
+{
+  return mpTrack->mMask; 
+}
+
+bool CSystem::bUseMask()
+{
+  return mpTrack->mbUseMask;
+}
+
 cv::Mat CSystem::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
 { 
   if(mSensor!=RGBD)

@@ -29,6 +29,9 @@ class CSystem : public ORB_SLAM2::System
     CTrack* mpTrack;
     CLocalMap* mpLocalMap; 
     
+    void setMask(cv::Mat mask); 
+    cv::Mat getMask(); 
+    bool bUseMask();
     bool isNewKF();
     float mpos[7];   // x, y, z, qx, qy, qz, qw
     void convertPos(cv::Mat); 

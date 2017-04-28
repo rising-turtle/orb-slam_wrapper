@@ -17,7 +17,8 @@ CTrack::CTrack(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, Map
 
 CTrack::CTrack(const Tracking& pTrack) : Tracking(pTrack), 
   mpExtractP(0),
-  mbUsePlane(false)
+  mbUsePlane(false),
+  mbUseMask(false)
 {
 
 }
@@ -45,6 +46,12 @@ void CTrack::enablePlanes(string imgDir, vector<string>& vRGBf, vector<string>& 
   return ; 
 }
 
+void CTrack::setTrackMask(cv::Mat mask)
+{
+  mMask = mask.clone(); 
+  mbUseMask = true; 
+}
+
 cv::Mat CTrack::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat &imD, const double &timestamp)
 {
   // return Tracking::GrabImageRGBD(imRGB, imD, timestamp); 
@@ -69,8 +76,13 @@ cv::Mat CTrack::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat &imD, const do
   if(mDepthMapFactor!=1 || imDepth.type()!=CV_32F);
   imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
 
+  if(mbUseMask)
+  {
+  mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth, mMask);
+  }else
+  {
   mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-  
+  }
   cout <<"track.cpp: Frame "<<mCurrentFrame.mnId<<" extract features number : "<<mCurrentFrame.N<<endl; 
 
   Track();
@@ -109,7 +121,7 @@ bool CTrack::TrackWithMotionModel()
   if(mSensor!=System::STEREO)
     th = 15; 
   else
-    th = 7; 
+    th = 15;  // 7
 
   int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor==System::MONOCULAR); 
 

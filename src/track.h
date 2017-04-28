@@ -47,4 +47,11 @@ class CTrack : public ORB_SLAM2::Tracking
     vector<int> mvPlaneAssociate;     // planes association result
     vector<CPlaneF*> mvpLocalPlanes;  // planes in the Local Map
     CExtractPlane* mpExtractP;      // extract planes from frame
+
+    // whether use a mask to filter out features 
+    void setTrackMask(cv::Mat mask); 
+    void maskFilter(); 
+    bool mbUseMask;   
+    cv::Mat mMask; 
+    
  }; 
