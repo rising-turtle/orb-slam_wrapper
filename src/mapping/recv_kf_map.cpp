@@ -110,10 +110,14 @@ int main(int argc, char* argv[])
   sync.registerCallback(boost::bind(&ImageGrabber,_1,_2, _3));
 
   // cam model for r200
-  CamModel cam(629.315, 635.483, 308.579, 239.042, -0.0845005, 0.0486205);
-  cam.width = 640; 
-  cam.height = 480; 
+  // CamModel cam(629.315, 635.483, 308.579, 239.042, -0.0845005, 0.0486205);
+  // cam.width = 640; 
+  // cam.height = 480; 
   
+  CamModel cam( 313.497 , 316.597 , 159.221, 120.558, -0.0771327, 0.0531668); 
+  cam.width = 320; 
+  cam.height = 240; 
+
   cv::Mat imRGB, imD; 
   cv::Mat lRGB, lDpt, lPos; 
   bool lNew; 

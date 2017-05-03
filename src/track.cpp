@@ -3,6 +3,7 @@
 #include "Optimizer.h"
 #include "keyframe.h"
 #include "optimizer.h"
+#include <ros/ros.h>
 
 using namespace ORB_SLAM2; 
 
@@ -10,7 +11,9 @@ CTrack::CTrack(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, Map
                      KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor): 
   Tracking(pSys, pVoc, pFrameDrawer, pMapDrawer, pMap, pKFDB, strSettingPath, sensor), 
   mpExtractP(0),
-  mbUsePlane(false)
+  mbUsePlane(false),
+  mbUseMask(false),
+  mbLargeT(false)
 {
 
 }
@@ -18,7 +21,8 @@ CTrack::CTrack(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, Map
 CTrack::CTrack(const Tracking& pTrack) : Tracking(pTrack), 
   mpExtractP(0),
   mbUsePlane(false),
-  mbUseMask(false)
+  mbUseMask(false),
+  mbLargeT(false)
 {
 
 }
@@ -54,7 +58,7 @@ void CTrack::setTrackMask(cv::Mat mask)
 
 cv::Mat CTrack::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat &imD, const double &timestamp)
 {
-  // return Tracking::GrabImageRGBD(imRGB, imD, timestamp); 
+  ros::Time st1 = ros::Time::now(); 
   mImGray = imRGB;
   cv::Mat imDepth = imD;
 
@@ -84,8 +88,13 @@ cv::Mat CTrack::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat &imD, const do
   mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
   }
   cout <<"track.cpp: Frame "<<mCurrentFrame.mnId<<" extract features number : "<<mCurrentFrame.N<<endl; 
+  ros::Time et1 = ros::Time::now(); 
+  // ROS_WARN("Get Frame cost %lf ms", (et1.toSec() - st1.toSec())*1000.); 
 
+  ros::Time st = ros::Time::now(); 
   Track();
+  ros::Time et = ros::Time::now(); 
+  // ROS_WARN("Track() cost %lf ms", (et.toSec() - st.toSec())*1000.); 
 
   return mCurrentFrame.mTcw.clone();
 }
@@ -121,7 +130,7 @@ bool CTrack::TrackWithMotionModel()
   if(mSensor!=System::STEREO)
     th = 15; 
   else
-    th = 15;  // 7
+    th = 7;  // 7 15
 
   int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor==System::MONOCULAR); 
 
@@ -226,7 +235,9 @@ bool CTrack::TrackReferenceKeyFrame()
 
 void CTrack::Track()
 {
- 
+  ros::Time st, st1, et, et1; 
+  st1 = ros::Time::now(); 
+
   // do not handle case: only Tracking 
   if(mbOnlyTracking == true) 
     return Tracking::Track(); 
@@ -267,6 +278,7 @@ void CTrack::Track()
     bool bOK;
     bool bRelocalFailed = false; 
 
+    st = ros::Time::now(); 
     if(mState == OK)
     {
       // Local Mapping may have changed the position of some map points 
@@ -306,12 +318,18 @@ void CTrack::Track()
         cout <<"Track lost, Relocalization failed ! current frame has valid points = "<<nFPs<<endl;
       }
     }
+    
+    et1 = ros::Time::now(); 
+    // ROS_WARN("track.cpp: TrackMotion and TrackReference cost %lf ms", (et1.toSec() - st.toSec())*1000.); 
 
     mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
     if(bOK)
     {
+      st = ros::Time::now(); 
       bOK = TrackLocalMap();
+      et1 = ros::Time::now(); 
+      // ROS_WARN("track.cpp: TrackLocalMap cost %lf ms", (et1.toSec() - st.toSec())*1000.); 
       if(!bOK)
       {
         cout<<"TrackLocalMap failed! change state to TrackLost!"<<endl;
@@ -374,12 +392,22 @@ void CTrack::Track()
       }
       mlpTemporalPoints.clear();
 
+      st = ros::Time::now(); 
       // check if a new KF is needed 
       if(NeedNewKeyFrame() || bRelocalFailed) // a Failed Frame, add it as a new keyframe 
       {
         CreateNewKeyFrame();
         mbNewKF = true; 
+      
+        // check the PCE between last frame's pose and the new KF 
+        if(!mLastFrame.mTcw.empty())
+        {
+          cv::Mat Tlast2KF = mLastFrame.mTcw * mCurrentFrame.mpReferenceKF->GetPoseInverse();
+          mbLargeT = isLargeTrans(Tlast2KF); 
+        }
       }
+      et1 = ros::Time::now(); 
+      // ROS_WARN("track.cpp: createNewKF cost %lf ms", (et1.toSec() - st.toSec())*1000); 
 
       // delete outliers in this frame 
       for(int i=0; i<mCurrentFrame.N;i++)
@@ -413,8 +441,24 @@ void CTrack::Track()
     mlbLost.push_back(mState==LOST);
   }
 
+  et = ros::Time::now(); 
+  // ROS_WARN("track.cpp: Track cost %lf ms", (et.toSec() - st1.toSec())*1000); 
+
   // cout <<"mlRelativeFramePoses has pose: "<<mlRelativeFramePoses.size()<<endl;
   return ;
+}
+
+bool CTrack::isLargeTrans(cv::Mat Tcr)
+{
+  float px = Tcr.at<float>(0,3); 
+  float py = Tcr.at<float>(1,3); 
+  float pz = Tcr.at<float>(2,3); 
+  
+  if(sqrt(px*px + py*py+ pz*pz) >= 0.3)
+  {
+    return true; 
+  }
+  return false; 
 }
 
 bool CTrack::isNewKF()

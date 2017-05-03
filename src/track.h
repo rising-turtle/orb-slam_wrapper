@@ -38,6 +38,8 @@ class CTrack : public ORB_SLAM2::Tracking
     // bool 
     bool isNewKF(); 
     bool mbNewKF;    // whether a new KF is added 
+    bool isLargeTrans(cv::Mat); // whether the relative PCE is large 
+    bool mbLargeT; 
 
     // plane related functions 
     int findPlaneMatches(); 
