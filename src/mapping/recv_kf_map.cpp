@@ -110,17 +110,19 @@ int main(int argc, char* argv[])
   sync.registerCallback(boost::bind(&ImageGrabber,_1,_2, _3));
 
   // cam model for r200
-  // CamModel cam(629.315, 635.483, 308.579, 239.042, -0.0845005, 0.0486205);
-  // cam.width = 640; 
-  // cam.height = 480; 
+  CamModel cam1(629.315, 635.483, 308.579, 239.042, -0.0845005, 0.0486205);
+  cam1.width = 640; 
+  cam1.height = 480; 
   
-  CamModel cam( 313.497 , 316.597 , 159.221, 120.558, -0.0771327, 0.0531668); 
-  cam.width = 320; 
-  cam.height = 240; 
+  CamModel cam2( 313.497 , 316.597 , 159.221, 120.558, -0.0771327, 0.0531668); 
+  cam2.width = 320; 
+  cam2.height = 240; 
 
   cv::Mat imRGB, imD; 
   cv::Mat lRGB, lDpt, lPos; 
   bool lNew; 
+  CamModel cam; 
+  bool Once = true; 
   sleep(2); // wait for the mapping program start
   while(ros::ok())
   {
@@ -132,6 +134,14 @@ int main(int argc, char* argv[])
           lRGB = gRGB.clone(); 
           lDpt = gDpt.clone(); 
           lPos = gPos.clone(); 
+          if(Once)
+          {
+            if(lRGB.rows == cam1.height)
+              cam = cam1; 
+            else
+              cam = cam2; 
+            Once = false; 
+          }
           gNew = false; 
           lNew = true; 
         }
@@ -216,9 +226,9 @@ void generateKFMsg(Traj& Ti, cv::Mat rgb, cv::Mat dpt, CamModel& cam, ros::Publi
       invd = 1./(float)(d); 
     pc[idx].idepth = invd; 
     pc[idx].idepth_var = 0.00001; // fake one 
-    pc[idx].color[0] = rgb.ptr<uchar>(m)[n*3+2]; 
+    pc[idx].color[0] = rgb.ptr<uchar>(m)[n*3+0]; 
     pc[idx].color[1] = rgb.ptr<uchar>(m)[n*3+1]; 
-    pc[idx].color[2] = rgb.ptr<uchar>(m)[n*3+0]; 
+    pc[idx].color[2] = rgb.ptr<uchar>(m)[n*3+2]; 
     pc[idx].color[3] = 1; 
   }
   // cout <<"after build point cloud"<<endl;

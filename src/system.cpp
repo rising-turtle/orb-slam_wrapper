@@ -91,6 +91,10 @@ void CSystem::enablePlanes(string imgDir, vector<string>& vRGBf, vector<string>&
   return; 
 }
 
+bool CSystem::isLargeTrans()
+{
+  return mpTrack->mbLargeT; 
+}
 
 bool CSystem::isNewKF()
 {

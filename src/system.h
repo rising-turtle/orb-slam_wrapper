@@ -33,6 +33,7 @@ class CSystem : public ORB_SLAM2::System
     cv::Mat getMask(); 
     bool bUseMask();
     bool isNewKF();
+    bool isLargeTrans(); 
     float mpos[7];   // x, y, z, qx, qy, qz, qw
     void convertPos(cv::Mat); 
 }; 
