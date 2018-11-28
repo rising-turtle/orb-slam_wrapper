@@ -24,7 +24,7 @@ set(CMAKE_CXX_FLAGS "-ggdb -g -O3 -fPIC -fpermissive -std=c++11 -w")
 # find_package(Boost REQUIRED COMPONENTS system)
 
 
-find_package(OpenCV 2.4.3 REQUIRED)
+find_package(OpenCV 2.4 REQUIRED)
 # find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
@@ -41,8 +41,8 @@ include_directories(/usr/include/eigen3)
  # add_definitions(${PCL_DEFINITIONS})
 
 ###################  ORB-SLAM   ######################
-set(ORB_SLAM_DIR "/home/etas/ORB_SLAM2")
-set(ORB_G2O "/home/etas/ORB_SLAM2/Thirdparty/g2o")
+set(ORB_SLAM_DIR "/home/davidz/work/3rdlibs/ORB_SLAM2")
+set(ORB_G2O "${ORB_SLAM_DIR}/Thirdparty/g2o")
 
 set(LIBS 
 ${OpenCV_LIBS} 
@@ -58,8 +58,9 @@ include_directories(
   ${ORB_SLAM_DIR}/include
   ${Pangolin_INCLUDE_DIRS}
   ${ORB_G2O} ${ORB_G2O}/g2o/types 
-  "../plane_model/src"
+  "../plane/src"
   "../cam_model/src"
+  ${catkin_INCLUDE_DIRS}
 )
 
 add_subdirectory(src)

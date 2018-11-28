@@ -65,9 +65,15 @@ int main(int argc, char **argv)
     }
 
     // cam model for f200
-    CamModel cam(621.94176, 625.35610, 319.77554, 236.21507, 0.08011, -0.56891);
-    cam.width = 640; 
-    cam.height = 480; 
+    // CamModel cam(621.94176, 625.35610, 319.77554, 236.21507, 0.08011, -0.56891);
+    // cam.width = 640; 
+    // cam.height = 480; 
+    
+    // cam model for R200 
+    CamModel cam(313.8326, 316.9582, 153.7794, 118.7975, -0.0845, 0.05186);
+    cam.width = 320; // 640 
+    cam.height = 240; // 480
+ 
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // ORB_SLAM2::System SLAM(ORBvoc,camParam,ORB_SLAM2::System::RGBD,true);
